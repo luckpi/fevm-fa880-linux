@@ -32,10 +32,18 @@ def find_sysfs() -> str | None:
 
 def find_hwmon_fan(name: str) -> str | None:
     """Return fan input path from the fa880_ec_hwmon or fevm_wmi hwmon."""
+    for n in ("fa880_ec_hwmon", "fevm_wmi"):
+        p = find_hwmon_attr(n, name)
+        if p:
+            return p
+    return None
+
+
+def find_hwmon_attr(driver: str, name: str) -> str | None:
     for h in glob.glob(HWMON_GLOB):
         try:
             with open(os.path.join(h, "name")) as f:
-                if f.read().strip() in ("fa880_ec_hwmon", "fevm_wmi"):
+                if f.read().strip() == driver:
                     p = os.path.join(h, name)
                     if os.path.exists(p):
                         return p
@@ -114,6 +122,9 @@ class FanCard(Gtk.Box):
 
         self.fan1_path = find_hwmon_fan("fan1_input")
         self.fan2_path = find_hwmon_fan("fan2_input")
+        # PPT (package power) from amdgpu; real die temp (Tctl) from k10temp
+        self.power_path = find_hwmon_attr("amdgpu", "power1_average")
+        self.tctl_path = find_hwmon_attr("k10temp", "temp1_input")
 
         # --- mode selector ---
         mode_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
@@ -152,15 +163,17 @@ class FanCard(Gtk.Box):
         grid.attach(self.s2_label, 2, 1, 1, 1)
         self.append(grid)
 
-        # --- RPM / temp readout ---
-        info = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=24)
+        # --- RPM / temp / power readout ---
+        info = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=20)
         info.set_halign(Gtk.Align.CENTER)
         self.rpm1 = Gtk.Label(label="风扇1: -- RPM")
         self.rpm2 = Gtk.Label(label="风扇2: -- RPM")
         self.temp = Gtk.Label(label="CPU: -- °C")
+        self.power = Gtk.Label(label="功率: -- W")
         info.append(self.rpm1)
         info.append(self.rpm2)
         info.append(self.temp)
+        info.append(self.power)
         self.append(info)
 
         self._updating = False
@@ -212,9 +225,20 @@ class FanCard(Gtk.Box):
             v = read_file(self.fan2_path)
             if v:
                 self.rpm2.set_text(f"风扇2: {v} RPM")
-        t = self.hw.read("cpu_temp")
-        if t:
-            self.temp.set_text(f"CPU: {t} °C")
+        # 优先用 k10temp 的真实核心温度，退化到 EC 温度
+        t = read_file(self.tctl_path) if self.tctl_path else None
+        if t and t.isdigit():
+            self.temp.set_text(f"CPU: {int(t) // 1000} °C")
+        else:
+            t = self.hw.read("cpu_temp")
+            if t:
+                self.temp.set_text(f"CPU: {t} °C (EC)")
+        if self.power_path:
+            v = read_file(self.power_path)
+            if v and v.isdigit():
+                w = int(v) / 1_000_000
+                if w >= 1:  # 滤掉偶发的异常低读数
+                    self.power.set_text(f"功率: {w:.0f} W")
         return True
 
     def show_write_error(self):

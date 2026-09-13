@@ -38,6 +38,21 @@ def wr(name: str, value: str):
         sys.exit(f"error: permission denied writing {path} - run with sudo")
 
 
+def hwmon_attr(driver: str, name: str):
+    """Find a sysfs file inside the hwmon device of the given driver."""
+    for h in glob.glob("/sys/class/hwmon/hwmon*"):
+        try:
+            with open(os.path.join(h, "name")) as f:
+                if f.read().strip() == driver:
+                    p = os.path.join(h, name)
+                    if os.path.exists(p):
+                        with open(p) as f:
+                            return f.read().strip()
+        except OSError:
+            pass
+    return None
+
+
 def cmd_status(_args):
     d = sysfs_dir()
     print(f"driver:   {d}")
@@ -45,6 +60,12 @@ def cmd_status(_args):
     print(f"fan1:     {rd('fan1_rpm')} RPM")
     print(f"fan2:     {rd('fan2_rpm')} RPM")
     print(f"cpu_temp: {rd('cpu_temp')} °C (EC)")
+    tctl = hwmon_attr("k10temp", "temp1_input")
+    if tctl and tctl.isdigit():
+        print(f"cpu_die:  {int(tctl) // 1000} °C (Tctl)")
+    ppt = hwmon_attr("amdgpu", "power1_average")
+    if ppt and ppt.isdigit():
+        print(f"pkg_power:{int(ppt) / 1_000_000:.1f} W (PPT)")
     for k in ("mode_count", "fan_count", "gpu_present", "feature_mask"):
         print(f"{k}: {rd(k)}")
 
