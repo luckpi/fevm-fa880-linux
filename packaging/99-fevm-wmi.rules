@@ -1,0 +1,5 @@
+# fevm-wmi: allow unprivileged users to use the control attributes.
+# The kernel forbids world-writable sysfs modes at compile time, so we
+# relax permissions here when the driver binds to the method device.
+ACTION=="bind", SUBSYSTEM=="wmi", ENV{WMI_GUID}=="99D89064-8D50-42BB-BEA9-155B2E5D0FCD", \
+  RUN+="/bin/sh -c 'for f in power_mode fan_mode fan1_duty fan2_duty; do chmod 0666 /sys%p/$f 2>/dev/null; done; true'"

@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=FEVM Control Center
+Name[zh_CN]=FEVM 控制中心
+Comment=Fan, power mode and feature control for FEVM FA880 PRO
+Exec=fevmcc
+Icon=fevmcc
+Terminal=false
+Categories=System;Settings;
+Keywords=fan;power;fevm;
