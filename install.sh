@@ -36,6 +36,8 @@ echo "[5/5] 安装用户态工具"
 install -m755 "$SRC_DIR/app/fevmctl.py" /usr/local/bin/fevmctl
 install -m755 "$SRC_DIR/app/fevmcc.py"  /usr/local/bin/fevmcc
 install -m644 "$SRC_DIR/app/com.fevm.controlcenter.desktop" /usr/local/share/applications/
+mkdir -p /etc/xdg/autostart
+install -m644 "$SRC_DIR/app/fevm-apply.desktop" /etc/xdg/autostart/
 
 echo
 echo "完成。验证："

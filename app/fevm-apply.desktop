@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=FEVM Control Center - apply saved settings
+Comment=Re-apply saved power mode and fan settings at login
+Exec=/usr/local/bin/fevmctl apply
+Terminal=false
+NoDisplay=true
+X-GNOME-Autostart-enabled=true

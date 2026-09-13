@@ -331,6 +331,10 @@ class MainWindow(Adw.ApplicationWindow):
         if not self.hw.try_write("power_mode", key):
             self.toast_overlay.add_toast(Adw.Toast.new("设置失败：无权限或固件拒绝"))
             GLib.idle_add(self.refresh_power_mode)
+            return
+        c = load_conf()
+        c["localdb"]["PowerMode"] = key
+        save_conf(c)
 
     def refresh_power_mode(self):
         cur = self.hw.read("power_mode")
